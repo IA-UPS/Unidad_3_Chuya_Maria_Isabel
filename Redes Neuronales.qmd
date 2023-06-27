@@ -53,12 +53,13 @@ library(DataExplorer)
 library(ggpubr)
 library(mosaicData)
 library(h2o)
-
+library(neuralnet)
+library(NeuralNetTools)
 ```
 
 ## Cargar Datos
 
--   Para cargar los datos se establece una variable y se lee los datos cargados en la misma carpeta "read.csv("./cancer.csv"), header=T)"
+-   Para cargar los datos se establece una variable y se lee los datos cargados en la misma carpeta "read.csv("./wdbc.data"), header=T)"
 
 -   Se usa el comando "head()" para visualizar las primeras filas de un conjunto de datos o un objeto en forma de tabla.
 
@@ -70,26 +71,249 @@ library(h2o)
 # Cargar los datos
 datos <- read.csv("./wdbc.data",header = T) 
 datos.numericos <- datos[, which(unlist(lapply(datos, is.numeric)))]
-colnames(datos.numericos) <- paste0("Var", rep(1:11))
+colnames(datos.numericos) <- paste0("Var", rep(1:10))
+datos<-datos[,1:10] 
+colnames(datos) <- c("ID_number", " Diagnosis", "radius1", "texture1",
+                     "perimeter1", "area1","smoothness1", "compactness1", 
+                     "concavity1", "concave_points1")
 
 # Explorar los datos
 head(datos)  # Ver las primeras filas del conjunto de datos
 summary(datos)  # Obtener estadísticas descriptivas de las variables
 
-# Calcular medidas de tendencia central
-mean(datos$variable)  # Calcular la media de una variable
-median(datos$variable)  # Calcular la mediana de una variable
-table(datos$variable)  # Obtener la tabla de frecuencias de una variable categórica
-
-# Calcular medidas de dispersión
-sd(datos$variable)  # Calcular la desviación estándar de una variable
-range(datos$variable)  # Obtener el rango de una variable
-
 str(datos)
-datos<-datos[,1:11] 
+
 
 ```
 
 ```{r}
+#Tabla de resusmen de datos 
 skim(datos)
+```
+
+```{r}
+# Número de datos ausentes por variable
+# ==============================================================================
+datos %>% map_dbl(.f = function(x){sum(is.na(x))})
+```
+
+```{r}
+plot_missing(
+  data    = datos, 
+  title   = "Porcentaje de valores ausentes",
+  ggtheme = theme_bw(),
+  theme_config = list(legend.position = "none")
+)
+
+```
+
+```{r}
+#diagrama de cajas unido
+datos.melt<-reshape2::melt((datos))
+ggplot(datos.melt,aes(y=value,fill=variable))+geom_boxplot()
+
+#grafica de densidad
+datos.melt<-reshape2::melt((datos))
+ggplot(datos.melt1,aes(y=value))+geom_density()
+
+# Distribución variable respuesta
+# ==============================================================================
+ggplot(data = datos, aes( x = Var1)) +
+  geom_density(fill = "steelblue", alpha = 0.5) +
+  geom_rug(alpha = 0.1) +
+  scale_x_continuous(labels = scales::comma) +
+  labs(title = "Distribución original") +
+  theme_bw() 
+```
+
+```{r}
+#PCA
+cancer.pca <- prcomp(datos.numericos[, 1:10], center=TRUE, scale=TRUE)
+plot(cancer.pca, type="l", main='')
+grid(nx = 10, ny = 14)
+title(main = "PCA", sub = NULL, xlab = "Components")
+box()
+
+pca_df <- as.data.frame(cancer.pca$x)
+ggplot(pca_df, aes(x=PC1, y=PC2, col=datos$Diagnosis)) + geom_point(alpha=0.5)
+```
+
+```{r}
+# Gráfico de distribución para cada variable numérica
+# ==============================================================================
+datos1<- datos[,-2]
+plot_density(
+  data    = datos1 %>% select(-ID_number),
+  ncol    = 3,
+  title   = "Distribución variables continuas",
+  ggtheme = theme_bw(),
+  theme_config = list(
+                  plot.title = element_text(size = 14, face = "bold"),
+                  strip.text = element_text(colour = "black", size = 12, face = 2)
+                 )
+  )
+```
+
+```{r}
+# Reparto de datos en train y test
+# ==============================================================================
+n<-nrow(datos)
+set.seed(123456)
+
+#datos$diagnostico<-as.factor(datos$diagnostico)
+
+train <- sample(n,floor(n*0.7))
+datos.train <- datos[train,]
+datos.test  <- datos[-train,]
+```
+
+```{r}
+# Se almacenan en un objeto `recipe` todos los pasos de preprocesado y, finalmente,
+# se aplican a los datos.
+transformer <- recipe(
+                  formula = ID_number ~ .,
+                  data =  datos.train
+               ) %>%
+               step_naomit(all_predictors()) %>%
+               step_nzv(all_predictors()) %>%
+               step_center(all_numeric(), -all_outcomes()) %>%
+               step_scale(all_numeric(), -all_outcomes()) %>%
+               step_dummy(all_nominal(), -all_outcomes())
+
+transformer
+```
+
+```{r}
+# Se entrena el objeto recipe
+transformer_fit <- prep(transformer)
+
+# Se aplican las transformaciones al conjunto de entrenamiento y de test
+datos_train_prep <- bake(transformer_fit, new_data = datos.train)
+datos_test_prep  <- bake(transformer_fit, new_data = datos.test)
+
+glimpse(datos_train_prep)
+```
+
+```{r}
+# Inicialización del cluster
+# ==============================================================================
+h2o.init(
+  nthreads = -1,
+  max_mem_size = "4g"
+)
+```
+
+```{r}
+# Se eliminan los datos del cluster por si ya había sido iniciado.
+h2o.removeAll()
+h2o.no_progress()
+```
+
+```{r}
+datos_train  <- as.h2o(datos_train_prep, key = "datos.train")
+datos_test   <- as.h2o(datos_test_prep, key = "datos.test")
+# Espacio de búsqueda de cada hiperparámetro
+# ==============================================================================
+hiperparametros <- list(
+                      epochs = c(50, 100, 500),
+                      hidden = list(5, 10, 25, 50, c(10, 10))
+                    )
+
+
+# Búsqueda por validación cruzada
+# ==============================================================================
+variable_respuesta <- 'precio'
+predictores <- setdiff(colnames(datos_train), variable_respuesta)
+
+grid <- h2o.grid(
+              algorithm    = "deeplearning",
+              activation   = "Rectifier",
+              x            = predictores,
+              y            = variable_respuesta,
+              training_frame  = datos_train,
+              nfolds       = 3, #validacion cruzada
+              standardize  = FALSE,
+              hyper_params = hiperparametros,
+              search_criteria = list(strategy = "Cartesian"),
+              seed         = 123,
+              grid_id      = "grid"
+          )
+# Resultados del grid
+# ==============================================================================
+resultados_grid <- h2o.getGrid(
+                     sort_by = 'rmse',
+                     grid_id = "grid",
+                     decreasing = FALSE
+                   )
+data.frame(resultados_grid@summary_table)
+# Mejor modelo encontrado
+# ==============================================================================
+modelo_final <- h2o.getModel(resultados_grid@model_ids[[1]])
+
+```
+
+```{r}
+predicciones <- h2o.predict(
+                  object  = modelo_final,
+                  newdata = datos_test
+                )
+
+predicciones <- predicciones %>%
+                as_tibble() %>%
+                mutate(valor_real = as.vector(datos_test$precio))
+
+predicciones %>% head(5)
+rmse(predicciones, truth = valor_real, estimate = predict, na_rm = TRUE)
+
+Conf.Matrix <- confusionMatrix(predicciones)
+print(Conf.Matrix)
+```
+
+```{r}
+#Figura percepcion ANN
+modelLookup("nnet")
+tuneGrid <- expand.grid(size = 2*1:5, decay = c(0, 0.001, 0.01))
+
+set.seed(123456)
+caret.nnet <- train(ID_number ~ ., data = datos.train, method = "nnet",
+             preProc = c("range"), # Reescalado en [0,1]
+             tuneGrid = tuneGrid,
+             trControl = trainControl(method = "cv", number = 10), 
+             linout = TRUE, maxit = 200, trace = FALSE)
+
+ggplot(caret.nnet, highlight = TRUE)
+plotnet(caret.nnet$finalModel)
+```
+
+```{r}
+pred <- predict(caret.nnet, newdata = datos.test)
+obs <- datos.test$ID_number
+
+plot(pred, obs, main = "Observado frente a predicciones",
+     xlab = "Predicción", ylab = "Observado")
+abline(a = 0, b = 1)
+abline(lm(obs ~ pred), lty = 2)
+```
+
+```{r}
+accuracy <- function(pred, obs, na.rm = FALSE,
+                     tol = sqrt(.Machine$double.eps)) {
+  err <- obs - pred     # Errores
+  if(na.rm) {
+    is.a <- !is.na(err)
+    err <- err[is.a]
+    obs <- obs[is.a]
+  }
+  perr <- 100*err/pmax(obs, tol)  # Errores porcentuales
+  return(c(
+    me = mean(err),           # Error medio
+    rmse = sqrt(mean(err^2)), # Raíz del error cuadrático medio
+    mae = mean(abs(err)),     # Error absoluto medio
+    mpe = mean(perr),         # Error porcentual medio
+    mape = mean(abs(perr)),   # Error porcentual absoluto medio
+    r.squared = 1 - sum(err^2)/sum((obs - mean(obs))^2) # Pseudo R-cuadrado
+  ))
+}
+
+accuracy(pred, obs)
 ```
