@@ -1,0 +1,95 @@
+---
+title: "Redes neuronales"
+author: "María Isabel Chuya"
+format: pdf
+editor: visual
+---
+
+# Tarea REDES NEURONALES
+
+1\. Descripción de los mismos numérica y gráficamente
+
+2\. Entender las fortalezas y debilidades del ANN perceptrón
+
+4\. Saber qué son las funciones de activación
+
+5\. Realizar un modelo preliminar de una capa sobre la clasificacion begnigno o maligno
+
+6\. Mejorar el modelo
+
+7\. Comparación de resultados mediante una matriz de confusión
+
+## Cargar Librerias
+
+Se cargan las librerias al inicio, puesto que ayuda a que todo el codigo se desarrolle de manera continua.
+
+```{r}
+library(ggplot2)
+library(e1071)
+library(dplyr)
+library(reshape2)
+library(corrplot)
+library(caret)
+library(kernlab)
+library(pROC)
+library(gridExtra)
+library(grid)
+library(ggfortify)
+library(purrr)
+library(nnet)
+library(ggstatsplot)
+library(knitr)
+library(lavaan)
+library(doParallel) # parallel processing
+registerDoParallel()
+require(foreach)
+require(iterators)
+require(parallel)
+library(tidymodels)
+library(tidyverse)
+library(ggthemes)
+library(skimr)
+library(DataExplorer)
+library(ggpubr)
+library(mosaicData)
+library(h2o)
+
+```
+
+## Cargar Datos
+
+-   Para cargar los datos se establece una variable y se lee los datos cargados en la misma carpeta "read.csv("./cancer.csv"), header=T)"
+
+-   Se usa el comando "head()" para visualizar las primeras filas de un conjunto de datos o un objeto en forma de tabla.
+
+-   Se usa el comando "summary(datos)" para obtener las estadisticas descriptivas de las variables
+
+-   Se usa el comando "str(datos)" para realizar el analisis estadistico de los datos
+
+```{r}
+# Cargar los datos
+datos <- read.csv("./wdbc.data",header = T) 
+datos.numericos <- datos[, which(unlist(lapply(datos, is.numeric)))]
+colnames(datos.numericos) <- paste0("Var", rep(1:11))
+
+# Explorar los datos
+head(datos)  # Ver las primeras filas del conjunto de datos
+summary(datos)  # Obtener estadísticas descriptivas de las variables
+
+# Calcular medidas de tendencia central
+mean(datos$variable)  # Calcular la media de una variable
+median(datos$variable)  # Calcular la mediana de una variable
+table(datos$variable)  # Obtener la tabla de frecuencias de una variable categórica
+
+# Calcular medidas de dispersión
+sd(datos$variable)  # Calcular la desviación estándar de una variable
+range(datos$variable)  # Obtener el rango de una variable
+
+str(datos)
+datos<-datos[,1:11] 
+
+```
+
+```{r}
+skim(datos)
+```
