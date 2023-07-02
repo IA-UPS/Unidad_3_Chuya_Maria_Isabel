@@ -1,6 +1,6 @@
 ---
-title: "Redes neuronales"
-author: "María Isabel Chuya"
+title: "Redes neuronales Tarea"
+author: "María Isabel Chuya-Nataly Quintanilla"
 format: pdf
 editor: visual
 ---
@@ -18,6 +18,27 @@ editor: visual
 6\. Mejorar el modelo
 
 7\. Comparación de resultados mediante una matriz de confusión
+
+## Fortalezas y debilidades del ANN perceptrón
+
+### Fortalezas: 
+
+1.  Capacidad de aprendizaje no lineal: un perceptrón de ANN puede aprender y representar funciones no lineales, a diferencia de un perceptrón simple. Un perceptrón en un ANN puede capturar relaciones más complejas entre las características de entrada y las salidas deseadas al agregar capas ocultas con funciones de activación no lineales, como la función sigmoide o ReLU.
+2.  Mayor capacidad de representación: En comparación con un perceptrón simple, un perceptrón en un ANN tiene una mayor capacidad de representación debido a su estructura multicapa y las conexiones entre capas. Puede aprender las características abstractas y las representaciones jerárquicas de los datos, lo que lo hace adecuado para abordar problemas más complejos y tareas de aprendizaje más difíciles.
+3.  Aprendizaje con retroalimentación: la retropropagación del error, un algoritmo efectivo para ajustar los pesos y sesgos de la red neuronal, permite que los perceptrones de una red neuronal aprendan. La retroalimentación del error ayuda a la red a aprender de sus errores y mejorar su rendimiento con el tiempo.
+
+### Debilidades: 
+
+1.  La complejidad computacional aumenta significativamente a medida que se agregan capas y conexiones en un ANN. Esto implica que, en comparación con un perceptrón simple, el entrenamiento y la predicción pueden requerir más tiempo y recursos computacionales.
+2.  Posibles sobreajustes: Cuando los ANN se entrenan con conjuntos de datos pequeños o ruidosos, es posible que se sobreajusten. En lugar de generalizar patrones más amplios, la red puede memorizar los datos de entrenamiento. Se necesitan métodos de regularización, como reducir la tasa de aprendizaje o incluir términos de regularización.
+3.  Dificultades de interpretación: La complejidad de ANN puede dificultar la comprensión del proceso de toma de decisiones de la red. La interpretación de los resultados de un ANN puede ser más difícil en comparación con modelos más simples y lineales debido a la naturaleza de la representación distribuida y las conexiones no lineales.
+4.  Mayor necesidad de datos de entrenamiento: Para que las ANNs funcionen correctamente, especialmente las con múltiples capas, pueden requerir una cantidad significativa de datos de entrenamiento. El ANN puede no poder comprender adecuadamente la complejidad del problema y sufrir de baja generalización si tiene pocos datos de entrenamiento.
+
+## Funciones de Activación 
+
+Las funciones de activación de las redes neuronales se aplican a la salida de una neurona o unidad de procesamiento de una red neuronal. Estas características permiten que las redes neuronales capturen patrones y relaciones más complejos en los datos y introducen la no linealidad en la red.
+
+Las funciones de activación se aplican a todas las entradas de una neurona, incluido el sesgo, y producen una salida que se transmite a las neuronas de la siguiente capa. Dado que permiten que la salida de una neurona no sea simplemente una combinación lineal de entradas, estas funciones introducen no linealidad en la red.
 
 ## Cargar Librerias
 
@@ -73,7 +94,7 @@ datos <- read.csv("./wdbc.data",header = T)
 datos.numericos <- datos[, which(unlist(lapply(datos, is.numeric)))]
 colnames(datos.numericos) <- paste0("Var", rep(1:10))
 datos<-datos[,1:10] 
-colnames(datos) <- c("ID_number", " Diagnosis", "radius1", "texture1",
+colnames(datos) <- c("ID_number", "Diagnosis", "radius1", "texture1",
                      "perimeter1", "area1","smoothness1", "compactness1", 
                      "concavity1", "concave_points1")
 
@@ -85,6 +106,8 @@ str(datos)
 
 
 ```
+
+## Descripcion numérica y gráfica
 
 ```{r}
 #Tabla de resusmen de datos 
@@ -114,16 +137,10 @@ ggplot(datos.melt,aes(y=value,fill=variable))+geom_boxplot()
 
 #grafica de densidad
 datos.melt<-reshape2::melt((datos))
-ggplot(datos.melt1,aes(y=value))+geom_density()
+ggplot(datos.melt,aes(x=value))+geom_density()
 
-# Distribución variable respuesta
-# ==============================================================================
-ggplot(data = datos, aes( x = Var1)) +
-  geom_density(fill = "steelblue", alpha = 0.5) +
-  geom_rug(alpha = 0.1) +
-  scale_x_continuous(labels = scales::comma) +
-  labs(title = "Distribución original") +
-  theme_bw() 
+#csa<- as.data.frame(datos.test)
+
 ```
 
 ```{r}
@@ -143,7 +160,7 @@ ggplot(pca_df, aes(x=PC1, y=PC2, col=datos$Diagnosis)) + geom_point(alpha=0.5)
 # ==============================================================================
 datos1<- datos[,-2]
 plot_density(
-  data    = datos1 %>% select(-ID_number),
+  data    = datos %>% select(-ID_number),
   ncol    = 3,
   title   = "Distribución variables continuas",
   ggtheme = theme_bw(),
@@ -160,11 +177,13 @@ plot_density(
 n<-nrow(datos)
 set.seed(123456)
 
-#datos$diagnostico<-as.factor(datos$diagnostico)
+datos$Diagnosis<-as.factor(datos$Diagnosis)
 
 train <- sample(n,floor(n*0.7))
 datos.train <- datos[train,]
 datos.test  <- datos[-train,]
+
+csa<- as.data.frame(datos.test)
 ```
 
 ```{r}
@@ -201,6 +220,8 @@ h2o.init(
   nthreads = -1,
   max_mem_size = "4g"
 )
+
+
 ```
 
 ```{r}
@@ -222,7 +243,7 @@ hiperparametros <- list(
 
 # Búsqueda por validación cruzada
 # ==============================================================================
-variable_respuesta <- 'precio'
+variable_respuesta <- 'radius1'
 predictores <- setdiff(colnames(datos_train), variable_respuesta)
 
 grid <- h2o.grid(
@@ -230,12 +251,12 @@ grid <- h2o.grid(
               activation   = "Rectifier",
               x            = predictores,
               y            = variable_respuesta,
-              training_frame  = datos_train,
+              training_frame = datos_train,
               nfolds       = 3, #validacion cruzada
               standardize  = FALSE,
               hyper_params = hiperparametros,
               search_criteria = list(strategy = "Cartesian"),
-              seed         = 123,
+              seed         = 123456,
               grid_id      = "grid"
           )
 # Resultados del grid
@@ -260,17 +281,20 @@ predicciones <- h2o.predict(
 
 predicciones <- predicciones %>%
                 as_tibble() %>%
-                mutate(valor_real = as.vector(datos_test$precio))
+                mutate(valor_real = as.vector(datos_test$Diagnosis))
 
-predicciones %>% head(5)
+predicciones %>% head(10)
 rmse(predicciones, truth = valor_real, estimate = predict, na_rm = TRUE)
 
-Conf.Matrix <- confusionMatrix(predicciones)
-print(Conf.Matrix)
+
+
+
+
 ```
 
+## Figura percepción ANN
+
 ```{r}
-#Figura percepcion ANN
 modelLookup("nnet")
 tuneGrid <- expand.grid(size = 2*1:5, decay = c(0, 0.001, 0.01))
 
@@ -292,7 +316,6 @@ obs <- datos.test$ID_number
 plot(pred, obs, main = "Observado frente a predicciones",
      xlab = "Predicción", ylab = "Observado")
 abline(a = 0, b = 1)
-abline(lm(obs ~ pred), lty = 2)
 ```
 
 ```{r}
@@ -316,4 +339,5 @@ accuracy <- function(pred, obs, na.rm = FALSE,
 }
 
 accuracy(pred, obs)
+
 ```
