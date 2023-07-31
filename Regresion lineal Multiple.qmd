@@ -1,0 +1,197 @@
+---
+title: "Multple Linear Regression"
+author: "María Isabel Chuya"
+format: pdf
+editor: visual
+---
+
+# Multple Linear Regression
+
+La regresión lineal múltiple es una generalización de la regresión lineal simple porque permite evaluar las relaciones lineales entre una variable explicativa (cuantitativa o cualitativa) y varias variables de respuesta.
+
+-   Cargar librerías a utilizar
+
+```{r}
+library(ggplot2)
+library(forcats)
+library(performance)
+library(visreg)
+library(ggstatsplot)
+library(car)
+library(carData)
+
+```
+
+-   Se cargan llos datos del conjunto "mtcars"
+
+-   El comando "head()" muestra por defecto las primeras 6 filas del conjunto de datos especificado.
+
+```{r}
+# Cargamos el conjunto de datos mtcars
+data <- mtcars
+head(data)
+
+```
+
+El peso (wt), los caballos de fuerza (hp) y el desplazamiento (disp) de un automóvil están relacionados con su consumo de combustible (mpg). El volumen combinado de aire barrido (o desplazado) que resulta del movimiento hacia arriba y hacia abajo de los pistones en los cilindros se conoce como cilindrada del motor. Por lo general, cuanto más alto es el cilindro, más potente es el motor.
+
+```{r}
+ggplot(data) +
+  aes(x = wt, y = mpg, colour = hp, size = disp) +
+  geom_point() +
+  scale_color_gradient() +
+  labs(
+    y = "Miles per gallon",
+    x = "Weight (1000 lbs)",
+    color = "Horsepower",
+    size = "Displacement"
+  ) +
+  theme_minimal()
+```
+
+La relación estimada entre la variable dependiente y una variable explicativa es ajustada, es decir, libre de los efectos lineales de las otras variables explicativas, según la regresión lineal múltiple.
+
+## **Interpretaciones de los coeficientes**βˆ
+
+El método de mínimos cuadrados da como resultado una estimación ajustada de los coeficientes. El término ajustado significa **después de tener en cuenta los efectos lineales** de las otras variables independientes en la variable dependiente, pero también en la variable predictora.
+
+```{r}
+model2 <- lm(mpg ~ wt + hp + disp, data = data)
+summary(model2)
+```
+
+**La interpretación de las variables cualitativas independientes** es ligeramente diferente en el sentido de que cuantifica el efecto de un nivel en comparación con el nivel de referencia, siendo todo lo demás igual. Por lo tanto, compara los diferentes grupos (formados por los diferentes niveles de la variable categórica) en términos de la variable dependiente (es por eso que la regresión lineal se puede ver como una extensión de la prueba t y el ANOVA).
+
+```{r}
+# Grabando dat$vs
+data$vs <- as.character(data$vs)
+data$vs <- fct_recode(data$vs,
+  "V-shaped" = "0",
+  "Straight" = "1"
+)
+
+model3 <- lm(mpg ~ wt + vs, data = data)
+summary(model3)
+```
+
+Se concluye que:
+
+-   Para un motor en forma de V y para un aumento de una unidad en el peso (es decir, un aumento de 1000 libras), el número de millas/galón disminuye, en promedio, en 4,44 (p-valor \< 0,001).
+
+-   La distancia recorrida con un galón de combustible aumenta, en promedio, en 3,15 millas **cuando el motor es recto en comparación con un motor en forma de V**, para un peso constante (p-valor = 0,013).
+
+-   (Para completar, pero debe interpretarse solo cuando tenga sentido: para un peso = 0 y un motor en forma de V, podemos esperar que el coche tenga, en promedio, un consumo de combustible de 33 millas/galón (p-valor \< 0,001).)
+
+## **Condiciones de aplicación**
+
+```{r}
+check_model(model2)
+summary(model2)
+```
+
+Para la ilustración, comenzamos con un modelo con todas las variables en el conjunto de datos como variables independientes:
+
+```{r}
+## vs has already been transformed into factor
+## so only am is transformed here
+
+## Recoding dat$vs
+library(forcats)
+data$am <- as.character(data$am)
+data$am <- fct_recode(data$am,
+  "Automatic" = "0",
+  "Manual" = "1"
+)
+
+model4 <- lm(mpg ~ ., data = data)
+model4 <- step(model4, trace = FALSE)
+summary(model4)
+
+
+```
+
+## **Visualizaciones**
+
+1.  El comando Visreg () que ilustra las relaciones entre las variables dependientes e independientes en diferentes gráficos (uno para cada variable independiente a menos que especifique qué relación desea ilustrar):
+
+```{r}
+visreg(model4)
+```
+
+2.  ggcoefstats () que ilustra los resultados en una sola parcela:
+
+```{r}
+ggcoefstats(model4)
+```
+
+### Predicciones
+
+La regresión lineal también se utiliza muy a menudo con **fines predictivos**. Los intervalos de confianza y predicción para **nuevos datos** se pueden calcular con el predict() función.
+
+```{r}
+# confidence interval for new data
+predict(model4,
+  new = data.frame(wt = 3, qsec = 18, am = "Manual"),
+  interval = "confidence",
+  level = .95
+)
+
+# prediction interval for new data
+predict(model4,
+  new = data.frame(wt = 3, qsec = 18, am = "Manual"),
+  interval = "prediction",
+  level = .95
+)
+```
+
+Según nuestro modelo, se espera que este coche conduzca 22,87 millas con un galón.
+
+La diferencia entre el intervalo de confianza y el intervalo de predicción es que:
+
+-   un intervalo **de confianza** da el valor predicho para la **media** de Y para una nueva observación, mientras que
+
+-   un intervalo **de predicción** da el valor predicho para un **individuo** Y para una nueva observación.
+
+El intervalo de predicción es más amplio que el intervalo de confianza para tener en cuenta la **incertidumbre adicional debido a la predicción de una respuesta individual**, y no la media, para un valor dado de X.
+
+### **Pruebas de Hipótesis LIneales**
+
+```{r}
+linearHypothesis(model4, c("wt = 0", "qsec = 0"))
+```
+
+Rechazamos la hipótesis nula y concluimos que al menos uno de β1 y β2 es diferente de 0 (pag-valor = 1.55e-09).
+
+### **Efecto general de las variables categóricas**
+
+Cuando las variables independientes son categóricas con k categorías, la tabla de regresión proporciona k valores:
+
+```{r}
+model5 <- lm(mpg ~ vs + am + as.factor(cyl), data = data)
+summary(model5)
+```
+
+```{r}
+Anova(model5)
+```
+
+### **Interacción**
+
+Existe un efecto **de interacción** entre los factores A y B **si el efecto del factor A sobre la respuesta depende del nivel que tome el factor** B.
+
+```{r}
+model6 <- lm(mpg ~ wt + am + wt:am, data = data)
+
+# Or in a shorter way:
+model6 <- lm(mpg ~ wt * am, data = data)
+
+summary(model6)
+```
+
+La forma más fácil de manejar la interacción es visualizar la relación para cada nivel de la variable categórica:
+
+```{r}
+visreg(model6, "wt", by = "am")
+```
+
+Vemos que la relación entre el peso y las millas/galón es más fuerte (la pendiente es más pronunciada) para los coches con transmisión manual en comparación con los coches con transmisión automática.
