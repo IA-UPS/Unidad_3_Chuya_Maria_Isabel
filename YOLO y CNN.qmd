@@ -1,0 +1,80 @@
+---
+title: "YOLO y CNN"
+author: "María Isabel Chuya"
+format: pdf
+editor: visual
+---
+
+# [Redes Neuronales](https://avac.ups.edu.ec/presencial62/mod/assign/view.php?id=118502 "Redes neuronales") Convolucionales
+
+## ¿Qué es la loss function en Yolov8?
+
+La función de pérdida en YOLOv8, una variante de la arquitectura de redes neuronales convolucionales "You Only Look Once" (YOLO) utilizada para la detección de objetos en imágenes, es un componente esencial que evalúa la discrepancia entre las predicciones del modelo y las etiquetas reales de los objetos en la imagen.
+
+Esta función de pérdida combina diversas métricas, como la pérdida de coordenadas para ajustar las ubicaciones de los cuadros delimitadores de los objetos, la pérdida de confianza para evaluar la certeza de las detecciones realizadas, y la pérdida de clasificación para identificar la clase del objeto detectado. En esencia, la función de pérdida cuantifica el rendimiento del modelo en la tarea de detección de objetos y guía el proceso de aprendizaje mediante la optimización.
+
+## ¿Qué función de pérdida se utiliza en imágenes biomédicas? (respecto CNN)
+
+En el ámbito de las imágenes biomédicas y el uso de redes neuronales convolucionales (CNN), la elección de la función de pérdida depende del tipo de tarea que se esté abordando. Algunas de las funciones de pérdida comunes incluyen:
+
+-   Binary Cross-Entropy Loss: Esta función se emplea en tareas de clasificación binaria, donde el objetivo es predecir si una imagen pertenece a una clase específica o no. Se utiliza ampliamente en aplicaciones como la segmentación de imágenes.
+
+-   Categorical Cross-Entropy Loss: Se utiliza para problemas de clasificación multiclase, donde la red intenta asignar una imagen a una de varias clases diferentes. Es especialmente útil cuando se tienen múltiples categorías a predecir.
+
+-   Dice Loss (Coeficiente de Dice): Se aplica en tareas de segmentación de imágenes, donde el propósito es predecir la ubicación precisa de una estructura particular dentro de la imagen. Esta función ayuda a medir la superposición entre las máscaras predichas y las máscaras reales.
+
+-   Mean Squared Error (MSE): Es una opción adecuada para problemas de regresión, donde la red CNN se esfuerza por predecir un valor numérico en lugar de una clasificación categórica.
+
+En resumen, cada función de pérdida se adapta a diferentes tipos de problemas y es fundamental para evaluar y guiar el rendimiento del modelo en las tareas específicas de imágenes biomédicas.
+
+## Fortalizas y debilidades de las redes neuronales convolucionales
+
+Fortalezas y debilidades de las redes neuronales convolucionales:
+
+### Fortalezas:
+
+1\. Capacidad para aprender representaciones jerárquicas y características relevantes de los datos sin la necesidad de diseñar manualmente características específicas. Esto les permite adaptarse a diferentes tipos de datos de manera automática.
+
+2\. Son altamente eficaces en el procesamiento de datos con estructura espacial, como imágenes y videos, debido a la operación de convolución, que les permite capturar patrones y características locales.
+
+3\. Exhiben un rendimiento sobresaliente en una amplia gama de tareas de visión por computadora, como clasificación de imágenes, detección de objetos, segmentación y reconocimiento facial, entre otras. Su capacidad para capturar características visuales complejas los hace ideales para estas aplicaciones.
+
+4\. Son ampliamente aplicables en diversas industrias, como medicina, automotriz, seguridad y entretenimiento, lo que ha llevado a avances significativos en estas áreas gracias a sus capacidades de procesamiento de imágenes y datos visuales.
+
+### Debilidades:
+
+1\. Requieren grandes conjuntos de datos de entrenamiento y tiempo de cómputo significativo para un entrenamiento adecuado. Esto puede hacer que el proceso de entrenamiento sea costoso en términos de recursos computacionales y tiempo.
+
+2\. Pueden ser susceptibles a sobreajuste (overfitting) si no se manejan adecuadamente, especialmente cuando se utilizan conjuntos de datos pequeños. Esto significa que el modelo puede memorizar los datos de entrenamiento en lugar de aprender patrones generales, lo que afecta su capacidad para generalizar a nuevos datos.
+
+3\. La interpretación de los resultados y la lógica interna del modelo pueden resultar desafiantes debido a su complejidad. Las CNN son modelos de caja negra, lo que significa que entender cómo llegan a sus predicciones puede ser complicado, especialmente en redes profundas.
+
+4\. Algunos modelos complejos pueden requerir hardware especializado para su entrenamiento y ejecución debido a las intensivas operaciones matriciales y computacionales que involucran. Esto puede limitar su accesibilidad y uso en entornos con recursos limitados.
+
+## ¿Por qué se puede utilizar en el dominio tiempo ?
+
+Las redes neuronales convolucionales (CNN) fueron originalmente desarrolladas para tareas de procesamiento de imágenes, lo que las llevó a aplicarse principalmente en el dominio espacial. Sin embargo, estudios han demostrado que las CNN también pueden ser adaptadas para trabajar con datos secuenciales en el dominio temporal, como series de tiempo.
+
+Para utilizar las CNN en el dominio temporal, es necesario realizar algunas modificaciones en su arquitectura para aprovechar la estructura secuencial de los datos. Algunos enfoques para emplear las CNN en el dominio temporal incluyen:
+
+1\. Uso de capas convolucionales 1D: En lugar de utilizar las convoluciones 2D que se aplican en imágenes, se emplean convoluciones 1D en la dimensión temporal de los datos. Esto permite a las CNN capturar características relevantes a lo largo del tiempo.
+
+2\. Aplicación de convoluciones 2D a datos transformados: Los datos temporales pueden ser transformados en representaciones de imagen, como imágenes de espectrogramas, para aprovechar las convoluciones 2D tradicionales. De esta manera, las CNN pueden utilizar su capacidad para extraer características espaciales para analizar la información temporal.
+
+3\. Combinación de redes neuronales recurrentes (RNN) con CNN: Es posible integrar arquitecturas de CNN con capas recurrentes, como las redes LSTM (Long Short-Term Memory) o RNN, para abordar tareas secuenciales más complejas. Las RNN están especialmente diseñadas para manejar secuencias de datos y pueden ser más adecuadas en ciertos casos que las CNN puras.
+
+Es importante destacar que, aunque las CNN pueden ser utilizadas en el dominio temporal, existen otros enfoques como las RNN o las redes LSTM que son especialmente diseñadas para tratar con datos secuenciales y pueden ser más apropiadas en ciertos escenarios. La elección entre estas arquitecturas dependerá de la naturaleza específica de la tarea y los requisitos del problema a resolver.
+
+## ¿Por qué un [SVM](https://avac.ups.edu.ec/presencial62/mod/assign/view.php?id=106360 "SVM") no puede utilizarse en el dominio tiempo, o se puede ?
+
+Un Support Vector Machine (SVM) es un algoritmo de aprendizaje supervisado que se emplea principalmente para problemas de clasificación y regresión. Aunque los SVM son altamente efectivos en el dominio espacial y han demostrado éxito en diversas aplicaciones, como clasificación de imágenes, no son una opción natural para el dominio temporal.
+
+La razón principal radica en que los SVM están diseñados para trabajar con datos en forma de vectores, lo cual dificulta su aplicación directa en datos secuenciales o temporales. Cuando se trata de este tipo de datos, es necesario transformarlos a una representación vectorial adecuada. Aunque es posible aplicar características manuales para convertir los datos temporales en vectores, esta aproximación puede no ser la más efectiva, ya que la estructura secuencial de los datos podría perderse durante este proceso.
+
+En lugar de utilizar SVM en el dominio temporal, se recomienda considerar enfoques como Redes Neuronales Recurrentes (RNN), Redes LSTM (Long Short-Term Memory) o Convolutional Neural Networks (CNN) adaptadas para datos secuenciales. Estas arquitecturas están específicamente diseñadas para manejar la estructura secuencial de los datos y conservar la información temporal relevante para el análisis y predicción de secuencias de datos.
+
+# Referecencias 
+
+Terven, J., & Cordova-Esparza, D. (2023). A comprehensive review of YOLO: From YOLOv1 to YOLOv8 and beyond. *arXiv preprint arXiv:2304.00501*.
+
+Yamashita, R., Nishio, M., Do, R. K. G., & Togashi, K. (2018). Convolutional neural networks: an overview and application in radiology. *Insights into imaging*, *9*, 611-629.
